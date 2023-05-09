@@ -2,7 +2,7 @@
 
 Скрипт находится на мастер узле dataproc кластера.
 
-`/home/ubuntu/check_and_upload_new_data.sh`:
+[`/home/ubuntu/check_and_upload_new_data.sh`](scripts/check_and_upload_new_data.sh):
 ```
 s3_file_list=$(s3cmd ls s3://mlops-data/fraud-data/ | awk '{print $4}' | awk -F" +|/" '{print $NF}' | sort)
 hdfs_file_list=$(hdfs dfs -ls -C /user/fraud-data/ | awk -F" +|/" '{print $NF}' | sort)
@@ -25,7 +25,7 @@ fi
 
 # DAG для запуска скрипта по расписанию
 
-`/home/airflow/dags/download_on_schedule.py`:
+[`/home/airflow/dags/download_on_schedule.py`](dags/download_on_schedule.py):
 ```
 from datetime import datetime
 
@@ -39,7 +39,7 @@ args = {
 dag = DAG(
     dag_id='download_on_schedule',
     default_args=args,
-    schedule_interval='* 22 * * *',
+    schedule_interval='0 21 * * *',
     start_date=datetime.now(),
     tags=['API'],
     catchup=False
