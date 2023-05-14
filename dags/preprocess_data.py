@@ -19,7 +19,8 @@ dag = DAG(
 
 spark_submit = SparkSubmitOperator(
     task_id='spark_preprocess_data', 
-    application ='/home/ubuntu/scripts/preprocess.py' ,
+    application ='/home/ubuntu/scripts/preprocess.py',
+    name='fraud_data_preproc',
     dag=dag,
 )
 
