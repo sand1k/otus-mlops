@@ -16,6 +16,13 @@ AWS_DEFAULT_REGION="ru-central1"
 
 Развернуть отдельную виртуальную машину для mlflow. На ней развернуть [mlflow-сревер](https://github.com/Toumash/mlflow-docker). Вместо minio настроить доступ к s3 на yandex cloud.
 
+Запуск mlflow на виртуальной машине:
+```
+cd mlflow-docker
+docker compose up -d
+```
+Сервер доступен на порту 5000.
+
 
 # Скрипт обучения модели
 

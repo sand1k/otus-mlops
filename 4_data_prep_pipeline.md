@@ -212,3 +212,7 @@ only showing top 20 rows
 # Снимок экрана с сохраненным parquet файлом
 
  ![Dataproc listing](img/3_hdfs_result.png "Dataproc listing")
+
+# Ссылки
+
+- https://stackoverflow.com/questions/64264718/spark-window-partition-function-taking-forever-to-complete
