@@ -1,120 +1,48 @@
+import findspark
+findspark.init()
+
 from datetime import datetime
-import subprocess
 import pyspark
 import mlflow
 from mlflow.tracking import MlflowClient
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
-from pyspark.ml.regression import LinearRegression
-from pyspark.sql.types import StructType, StructField, IntegerType, StringType, DoubleType
-from pyspark.sql.functions import countDistinct
-from pyspark.ml.feature import VectorAssembler, StringIndexer, OneHotEncoder, StandardScaler
+from pyspark.ml.classification import LogisticRegression, RandomForestClassifier
+from pyspark.ml.feature import VectorAssembler
 from pyspark.ml import Pipeline
-from pyspark.sql.functions import hour, dayofweek, year, month, count, to_timestamp, when, isnan
+from pyspark.sql.functions import col, when
 
 
-def run_cmd(args_list):
-    """
-    run linux commands
-    """
-    # import subprocess
-    print('Running system command: {0}'.format(' '.join(args_list)))
-    proc = subprocess.Popen(args_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    s_output, s_err = proc.communicate()
-    s_return =  proc.returncode
-    return s_return, s_output, s_err 
-
-def get_files_list():        
-    # Get file list from hdfs
-    (ret, out, err) = run_cmd(['hdfs', 'dfs', '-ls', '-C', '/user/fraud-data'])
-    hdfs_files = [line for line in out.decode().split('\n') if len(line)]
-    hdfs_files.sort()
-    return hdfs_files
-
-
-def read_files(file_list):
-    # Define the schema for the DataFrame
-    schema = StructType([
-        StructField("transaction_id", IntegerType(), True),
-        StructField("tx_datetime", StringType(), True),
-        StructField("customer_id", IntegerType(), True),
-        StructField("terminal_id", IntegerType(), True),
-        StructField("tx_amount", DoubleType(), True),
-        StructField("tx_time_seconds", IntegerType(), True),
-        StructField("tx_time_days", IntegerType(), True),
-        StructField("tx_fraud", IntegerType(), True),
-        StructField("tx_fraud_scenario", IntegerType(), True)
-    ])
-
-    # Load the CSV file into a DataFrame
-    df = (spark.read
-        .format("csv")
-        .schema(schema)
-        .option("header", False)
-        .option("sep", ',')
-        .option("comment", '#')
-        .load(file_list)
-    )
-    return df
-
-def explore(df):
-    # Show the DataFrame
-    df.show()
-    
-    row_count = df.count()
-    print(f"Row count: {row_count}")
-    
-    # Count the number of NaN values in each column
-    print("Count of NaN values in each column:")
-    nan_count = df.select([count(when(isnan(c), c)).alias(c) for c in df.columns])
-    nan_count.show()
-    
-    #for column in ["customer_id", "terminal_id", "tx_fraud_scenario"]:
-    #    distinct_count = df.agg(countDistinct(column)).collect()[0][0]
-    #    print(f"{column}: {distinct_count} unique values")
-    return df
-
-def preprocess(df):
-    # Convert the tx_datetime column to a timestamp type
-    df = df.withColumn("tx_datetime", to_timestamp(df["tx_datetime"], "yyyy-MM-dd HH:mm:ss"))
-    
-    # Extract new features from the tx_datetime column
-    df = df.withColumn("year", year(df["tx_datetime"]))
-    df = df.withColumn("month", month(df["tx_datetime"]))
-    df = df.withColumn("hour", hour(df["tx_datetime"]))
-    df = df.withColumn("day_of_week", dayofweek(df["tx_datetime"]))
-        
-    return df
-        
 def build_train_pipeline():
-    # Define the pipeline for feature extraction and transformation
-    # Here, we'll use StringIndexer and OneHotEncoder for categorical features.
-    # For numerical features, we'll use StandardScaler to scale them.
     # Define the pipeline stages
     stages = []
 
-    # Terminal_id, hour_of_day, and day_of_week should be treated as categorical features
-    categorical_columns = ["hour", "day_of_week", "month"]
-    for column in categorical_columns:
-        string_indexer = StringIndexer(inputCol=column, outputCol=f"{column}_index", handleInvalid="keep")
-        encoder = OneHotEncoder(inputCols=[string_indexer.getOutputCol()], outputCols=[f"{column}_ohe"])
-        stages += [string_indexer, encoder]
-
     # Define numerical columns and apply StandardScaler
-    numerical_columns = ["tx_amount"]
-    for column in numerical_columns:
-        vector_assembler = VectorAssembler(inputCols=[column], outputCol=f"{column}_vec")
-        scaler = StandardScaler(inputCol=vector_assembler.getOutputCol(), outputCol=f"{column}_scaled", withStd=True, withMean=True)
-        stages += [vector_assembler, scaler]
-
-    # Combine all the transformed features into a single "features" column
-    assembler_input = [f"{column}_ohe" for column in categorical_columns] + [f"{column}_scaled" for column in numerical_columns] 
-    #assembler_input = [f"{column}_scaled" for column in numerical_columns] 
+    numerical_columns = [
+         "tx_amount",
+         "is_weekend",
+         "is_night",
+         "customer_id_nb_tx_1day_window",
+         "customer_id_avg_amount_1day_window",
+         "customer_id_nb_tx_7day_window",
+         "customer_id_avg_amount_7day_window",
+         "customer_id_nb_tx_30day_window",
+         "customer_id_avg_amount_30day_window",
+         "terminal_id_nb_tx_1day_window",
+         "terminal_id_risk_1day_window",
+         "terminal_id_nb_tx_7day_window",
+         "terminal_id_risk_7day_window",
+         "terminal_id_nb_tx_30day_window",
+         "terminal_id_risk_30day_window"
+    ]
+    
+    assembler_input = [column for column in numerical_columns] 
     vector_assembler = VectorAssembler(inputCols=assembler_input, outputCol="features")
     stages += [vector_assembler]
     
     # Add model
-    regression = LinearRegression(featuresCol='features', labelCol='tx_fraud')
-    stages += [regression]
+    #classification = RandomForestClassifier(featuresCol='features', labelCol='tx_fraud')
+    classification = LogisticRegression(featuresCol='features', labelCol='tx_fraud')
+    stages += [classification]
 
     # Create the pipeline
     pipeline = Pipeline(stages=stages)
@@ -122,56 +50,72 @@ def build_train_pipeline():
     return pipeline
 
 
-# Main
+def calculate_accuracy(predictions):
+    predictions = predictions.withColumn(
+        "fraudPrediction",
+        when((predictions.tx_fraud==1) & (predictions.prediction==1), 1).otherwise(0)
+    )
 
-spark = (
-    pyspark.sql.SparkSession.builder
-        .appName("fraud_data_train")
-        .getOrCreate()
-)
-spark.conf.set('spark.sql.repl.eagerEval.enabled', True)  # to pretty print pyspark.DataFrame in jupyter
+    accurateFraud = predictions.groupBy("fraudPrediction").count().where(predictions.fraudPrediction==1).head()[1]
+    totalFraud = predictions.groupBy("tx_fraud").count().where(predictions.tx_fraud==1).head()[1]
+    accuracy = (accurateFraud/totalFraud)*100
+    return accuracy
 
-# Read available files
-new_files = get_files_list()
-new_files
 
-df = read_files(new_files[0])
-df = preprocess(df)
-
-# Prepare MLFlow experiment for logging
-client = MlflowClient()
-experiment = client.get_experiment_by_name("Fraud_Data")
-experiment_id = experiment.experiment_id
-
-run_name = 'Fraud_data_pipeline' + ' ' + str(datetime.now())
-
-with mlflow.start_run(run_name=run_name, experiment_id=experiment_id):
-    inf_pipeline = build_train_pipeline()
+if __name__ == "__main__":
+    spark = (
+        pyspark.sql.SparkSession.builder
+            #.config('spark.executor.instances', 8)
+            .config("spark.executor.cores", 4)
+            .appName("fraud_data_train")
+            .getOrCreate()
+    )
+    spark.conf.set('spark.sql.repl.eagerEval.enabled', True)  # to pretty print pyspark.DataFrame in jupyter
     
-    train, test = df.randomSplit([0.9, 0.1], seed=12345)
+    df = spark.read.parquet("/user/transformed_full/")
+    df_train = df.filter(col('ts').between("2019-09-21", "2019-10-13"))
+    df_test = df.filter(col('ts').between("2019-10-21", "2019-10-27"))
 
-    print("Fitting new model / inference pipeline ...")
-    model = inf_pipeline.fit(train)
+    client = MlflowClient()
+    experiment = client.get_experiment_by_name("Fraud_Data")
+    experiment_id = experiment.experiment_id
 
-    print("Scoring the model ...")
-    evaluator = BinaryClassificationEvaluator(labelCol='tx_fraud', rawPredictionCol='prediction')
+    run_name = 'Fraud_data_pipeline' + ' ' + str(datetime.now())
+
+    with mlflow.start_run(run_name=run_name, experiment_id=experiment_id):
+        # Train model
+        print("Fitting new model / inference pipeline ...")
+
+        pipeline = build_train_pipeline()
+        model = pipeline.fit(df_train)
+
+        print("Scoring the model ...")
+        evaluator = BinaryClassificationEvaluator(labelCol='tx_fraud', rawPredictionCol='prediction')
+
+        predictions_train = model.transform(df_train)
+        predictions_train.head()
+        areaUnderROC_train = evaluator.evaluate(predictions_train)
+
+        predictions_test = model.transform(df_test)
+        areaUnderROC_test = evaluator.evaluate(predictions_test)
+
+        run_id = mlflow.active_run().info.run_id
+        print(f"Logging metrics to MLflow run {run_id} ...")
+        mlflow.log_metric("ROC-train", areaUnderROC_train)
+        print(f"Model ROC-train: {areaUnderROC_train}")
+        mlflow.log_metric("ROC-test", areaUnderROC_test)
+        print(f"Model ROC-test: {areaUnderROC_test}")
+
+        print("Saving model locally...")
+        model.save("/user/models/latest.mdl")
+
+        FraudPredictionAccuracy = calculate_accuracy(predictions_train)
+        print("FraudPredictionAccuracy train:", FraudPredictionAccuracy)
+        FraudPredictionAccuracy = calculate_accuracy(predictions_test)
+        print("FraudPredictionAccuracy test:", FraudPredictionAccuracy)
+
+        print("Exporting/logging model ...")
+        mlflow.spark.log_model(model, 'fraud_classifier', registered_model_name='fraud_classifier')
+        print("Done")
     
-    predictions_train = model.transform(train)
-    areaUnderROC_train = evaluator.evaluate(predictions_train)
-    
-    predictions_test = model.transform(test)
-    areaUnderROC_test = evaluator.evaluate(predictions_test)
-
-    run_id = mlflow.active_run().info.run_id
-    print(f"Logging metrics to MLflow run {run_id} ...")
-    mlflow.log_metric("areaUnderROC-train", areaUnderROC_train)
-    print(f"Model areaUnderROC-train: {areaUnderROC_train}")
-    mlflow.log_metric("areaUnderROC-test", areaUnderROC_test)
-    print(f"Model areaUnderROC-test: {areaUnderROC_test}")
-
-    print("Saving model ...")
-    mlflow.spark.save_model(model, 'fraud_classifier')
-
-    print("Exporting/logging model ...")
-    mlflow.spark.log_model(model, 'fraud_classifier')
-    print("Done")
+    spark.stop()
