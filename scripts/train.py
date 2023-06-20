@@ -107,7 +107,7 @@ if __name__ == "__main__":
         print(f"Model ROC-test: {areaUnderROC_test}")
 
         print("Saving model locally...")
-        model.save("/user/models/latest.mdl")
+        model.write().overwrite().save("/user/models/latest.mdl")
 
         FraudPredictionAccuracy = calculate_accuracy(predictions_train)
         print("FraudPredictionAccuracy train:", FraudPredictionAccuracy)
