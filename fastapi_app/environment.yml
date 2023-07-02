@@ -1,0 +1,24 @@
+channels:
+- conda-forge
+dependencies:
+- python=3.8.10
+- pip<=20.2.4
+- pip:
+  - mlflow==2.3
+  - pandas<2
+  - pyspark==3.0.3
+  - scipy==1.9.3
+- fastapi
+- uvicorn[standard]
+- gunicorn
+- requests
+- pytest
+- pre-commit
+- scikit-learn
+- numpy
+- pydantic
+- mypy
+- starlette-exporter
+- boto3
+- httpx
+name: mlflow-env
