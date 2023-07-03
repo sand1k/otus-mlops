@@ -54,6 +54,10 @@ docker exec -it fraud_detection_container bash
 conda activate mlflow-env
 pytest -v
 ```
+или
+```
+docker run --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e MLFLOW_S3_ENDPOINT_URL -e MLFLOW_TRACKING_URI -e AWS_DEFAULT_REGION fraud_detection_img conda run --no-capture-output -n mlflow-env pytest -v
+```
 
 Скрипт для генерации запросов к сервису: [generate_requests.py](scripts/generate_requests.py).
 Запуск скрипта:

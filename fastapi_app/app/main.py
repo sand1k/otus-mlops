@@ -1,19 +1,23 @@
 from fastapi import FastAPI
 import uvicorn
 from app.schemas import Transaction
-import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from fastapi.encoders import jsonable_encoder
 import mlflow
+from fastapi.encoders import jsonable_encoder
+from starlette_exporter import PrometheusMiddleware, handle_metrics
+from prometheus_client import Counter
 
 
 app = FastAPI()
+app.add_middleware(PrometheusMiddleware)
+app.add_route("/metrics", handle_metrics)
 
+FRAUD_COUNTER = Counter("fraud", "Number of predicted fraud transaction")
 
 class Model:
     pipeline:  None
@@ -52,6 +56,10 @@ async def make_prediction(transaction: Transaction):
     print("-----------------------------------------------------------")
     print("Prediction:", res)
     print("===========================================================")
+    
+    if int(res[0]) == 1:
+        FRAUD_COUNTER.inc()
+    
     return {"prediction": res}
 
 
