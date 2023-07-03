@@ -19,8 +19,8 @@ jobs:
       MLFLOW_S3_ENDPOINT_URL: ${{ secrets.MLFLOW_S3_ENDPOINT_URL }}
       MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-      TEST_TAG: sand1k/mlops-fraud-transactions-app:test
-      LATEST_TAG: sand1k/mlops-fraud-transactions-app:latest
+      TEST_TAG: sand1k/mlops-fraud-detection-app:test
+      LATEST_TAG: sand1k/mlops-fraud-detection-app:latest
 
 
     steps:
@@ -54,6 +54,6 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: ./fastapi_app
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64 #,linux/arm64
         push: true
         tags: ${{ env.LATEST_TAG }}
