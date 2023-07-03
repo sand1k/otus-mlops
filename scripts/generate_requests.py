@@ -14,12 +14,12 @@ s3_filepath = "mlops-hw/transformed_full/fraud_data_sorted.parquet/year=2019/mon
 df = pd.read_parquet(
     f"s3a://{s3_filepath}",
     storage_options={
-        "key"          : os.getenv("S3_ACCESS_KEY"),
-        "secret"       : os.getenv("S3_SECRET_KEY"),
+        "key"          : os.getenv("AWS_ACCESS_KEY_ID"),
+        "secret"       : os.getenv("AWS_SECRET_ACCESS_KEY"),
         "client_kwargs": {
             'verify'      : True,
-            'region_name' : os.environ['S3_REGION'],
-            'endpoint_url': os.environ['S3_ENDPOINT']
+            'region_name' : os.environ['AWS_DEFAULT_REGION'],
+            'endpoint_url': os.environ['MLFLOW_S3_ENDPOINT_URL']
         }
     }
 )
