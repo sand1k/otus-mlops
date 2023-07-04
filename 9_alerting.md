@@ -35,12 +35,9 @@ UI grafana будет доступен на `localhost:3000`. Пароль по 
 
 Fastapi сервис c добавлением мониторинга: [fastapi_app/app/main.py](fastapi_app/app/main.py).
 
-Конфигрурационный файл github actions для сборки, тестирования и публикации контейнера: [docker-image.yml](.github/workflows/docker-image.yml).
+Конфигурационный файл kubernetes для мониторинга: [fraud-detection-monitoring.yml](k8s/fraud-detection-monitoring.yml)
 
-Конфигурационные файл kubernetes для мониторинга:
-- [fraud-detection-monitoring.yml](k8s/fraud-detection-monitoring.yml)
-
-Применение на кластере:
+Применить на кластере:
 ```
 kubectl apply -f k8s/fraud-detection-monitoring.yml 
 ```
