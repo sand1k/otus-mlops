@@ -57,6 +57,9 @@ for index, row in df.iterrows():
     row['ts'] = row['ts'].strftime('%Y-%m-%d %H:%M:%S')
     response = requests.post(url=os.environ['FRAUD_SERVICE_ENDPOINT'], json=row[numerical_columns].to_dict())
     print("-----------------------------------------------------------")
-    print("Prediction:", json.loads(response.text)['prediction'])
+    try:
+        print("Prediction:", json.loads(response.text)['prediction'])
+    except:
+        print("Exception!\nResponse:\n", response.text)
     print("===========================================================")
-    time.sleep(0.3)
+    time.sleep(1.0)

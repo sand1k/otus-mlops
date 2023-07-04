@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  namespace: default
+  labels:
+    release: my-kube-prometheus-stack # should match serviceMonitorSelector: matchLabels section of prometheus
+                                      # Could be retrieved by: kubectl -n default get prometheus -o yaml
+  name: fraud-detection
+spec:
+  endpoints:
+
+  - path: /metrics
+    port: fraud-detection
+    scheme: http
+    interval: 30s
+
+  jobLabel: fraud-detection
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app: fraud-detection
