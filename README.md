@@ -1,4 +1,4 @@
-# Домашине задания по курсу MLOps
+# Домашние задания по курсу MLOps
 
 Описание курса: [OTUS - MLOps](https://otus.ru/lessons/ml-bigdata/).
 
