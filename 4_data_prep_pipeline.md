@@ -1,4 +1,17 @@
-# Скрипт обработки данных
+# Конвейер подготовки данных
+
+## Цель
+
+В этом ДЗ вы закрепите навыки подготовки данных с применением pyspark.
+
+## Описание/Пошаговая инструкция выполнения домашнего задания
+
+1. Напишите на pyspark код для очистки и извлечения признаков из данных.
+2. Результат также сохраните на HDFS.
+3. Создайте виртуальную машину и запустите на ней AirFlow.
+4. Автоматизируйте запуск скрипта для обработки новых данных по расписанию через AirFlow.
+
+## Скрипт обработки данных
 
 [preprocess.py](scripts/preprocess.py)
 
@@ -8,11 +21,11 @@
 - Извлечь признаки
 - Сохранить получаенный датасет в `.parquet` файл
 
-# DAG запуска задачи
+## DAG запуска задачи
 
 [preprocess_data.py](dags/preprocess_data.py)
 
-# Пример логов выполнения задачи
+## Пример логов выполнения задачи
 
 ```
 Log Type: directory.info
@@ -209,10 +222,10 @@ Count of NaN values in each column:
 only showing top 20 rows
 ```
 
-# Снимок экрана с сохраненным parquet файлом
+## Снимок экрана с сохраненным parquet файлом
 
  ![Dataproc listing](img/3_hdfs_result.png "Dataproc listing")
 
-# Ссылки
+## Ссылки
 
 - https://stackoverflow.com/questions/64264718/spark-window-partition-function-taking-forever-to-complete
